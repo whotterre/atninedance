@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from api.v1.models.att_session import AttendanceSession
+    from api.v1.models.student import Student
 
 
 class AttendanceRecord(BaseModel):
@@ -16,6 +17,9 @@ class AttendanceRecord(BaseModel):
 
     session_id: Mapped[int] = mapped_column(ForeignKey("attendance_sessions.id"), nullable=False, index=True)
     session: Mapped["AttendanceSession"] = relationship("AttendanceSession", back_populates="attendance_records")
+
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"), nullable=False, index=True)
+    student: Mapped["Student"] = relationship("Student")
 
     detected_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 

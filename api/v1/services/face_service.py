@@ -134,12 +134,23 @@ class FaceService:
 
     def recognize_faces(self, image: np.ndarray, db: Session):
         """
-        Finds faces in image and match with registered students
+        Finds faces in image and match with registered students.
+
+        Args:
+            image: BGR image as numpy array
+            db: SQLAlchemy database session
+
+        Returns:
+            List of dicts with student_id, matric_no, name, confidence, bbox
         """
+        from api.v1.models.student_face_record import StudentFace
+
         gray_version = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         # Detect all faces in the image
-        faces = self.face_cascade.detectMultiScale(gray_version, 1.3, 5)
+        faces = self.face_cascade.detectMultiScale(
+            gray_version, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30)
+        )
 
         recognized_students = []
 
@@ -147,33 +158,39 @@ class FaceService:
             face_img = image[y : y + h, x : x + w]
             face_img = cv2.resize(face_img, (160, 160))
 
-            embedding = self.get_embedding(face_img)
+            try:
+                embedding = self.get_embedding(face_img)
+            except ValueError:
+                # Skip faces that can't be embedded
+                continue
 
             best_match = None
-            best_similarity = 0
+            best_similarity = 0.0
 
-            all_students: List[Student] = db.query(Student).all()
+            # Query all registered face embeddings with their students
+            all_faces = db.query(StudentFace).all()
 
-            for student in all_students:
-                for student_embedding in student.face_embeddings:
-                    similarity = self.cosine_similarity(
-                        embedding, student_embedding.embedding
-                    )
+            for face_record in all_faces:
+                similarity = self.cosine_similarity(
+                    embedding, list(face_record.embedding)
+                )
 
-                    if similarity > best_similarity:
-                        best_similarity = similarity
-                        best_match = student
-            # Take students records with confidence of 60%
+                if similarity > best_similarity:
+                    best_similarity = similarity
+                    best_match = face_record.student
+
+            # Accept matches with confidence > 60%
             if best_match and best_similarity > 0.6:
                 recognized_students.append(
                     {
                         "student_id": best_match.id,
-                        "matric_number": best_match.matric_number,
+                        "matric_no": best_match.matric_no,
                         "name": best_match.full_name,
-                        "confidence": float(best_similarity),
+                        "confidence": round(float(best_similarity), 4),
                         "bbox": [int(x), int(y), int(w), int(h)],
                     }
                 )
+        return recognized_students
 
     def cosine_similarity(self, vec_one: List[float], vec_two: List[float]) -> float:
         """Calculates how similar two embeddings are (0 to 1)"""
