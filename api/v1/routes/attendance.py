@@ -9,7 +9,7 @@ from api.v1.models.att_session import AttendanceSession
 from api.v1.schemas.session import SessionCreate
 from api.v1.services.face_service import get_face_service
 
-router = APIRouter(prefix="/attendance", tags=["Attendance"])
+router = APIRouter(tags=["Attendance"])
 
 @router.post("/sessions", status_code=201)
 async def create_session(
