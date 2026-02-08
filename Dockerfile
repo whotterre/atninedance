@@ -7,7 +7,7 @@ COPY requirements.txt .
 # Install dependencies, then force headless OpenCV (removes GUI version if deepface installed it)
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip uninstall -y opencv-python opencv-contrib-python 2>/dev/null || true && \
-    pip install --no-cache-dir opencv-python-headless && \
+    pip install --no-cache-dir --force-reinstall opencv-python-headless && \
     python -c "import cv2; print(f'OpenCV {cv2.__version__} installed successfully')"
 
 COPY . .
