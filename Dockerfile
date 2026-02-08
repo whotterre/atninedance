@@ -15,9 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 
-# Install dependencies, ensure only headless OpenCV
+# Install dependencies, then force headless OpenCV (removes GUI version if deepface installed it)
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip uninstall -y opencv-python 2>/dev/null || true
+    pip uninstall -y opencv-python opencv-contrib-python 2>/dev/null || true && \
+    pip install --no-cache-dir opencv-python-headless==4.13.0.90
 
 COPY . .
 
