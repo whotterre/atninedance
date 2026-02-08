@@ -6,7 +6,7 @@ from api.v1.models.student import Student as StudentModel
 from api.v1.models.student_face_record import StudentFace
 from api.v1.services.face_service import get_face_service
 
-router = APIRouter(prefix="/students", tags=["Students"])
+router = APIRouter(tags=["Students"])
 
 
 @router.post("/register", response_model=StudentRegisterRequest)
