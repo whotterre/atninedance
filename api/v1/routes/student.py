@@ -1,10 +1,11 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, status
-from api.v1.schemas.student import StudentRegisterRequest, StudentCreate
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, status, Query
+from api.v1.schemas.student import StudentRegisterRequest, StudentCreate, StudentResponse, StudentListResponse
 from api.db.database import get_db
 from sqlalchemy.orm import Session
 from api.v1.models.student import Student as StudentModel
 from api.v1.models.student_face_record import StudentFace
 from api.v1.services.face_service import get_face_service
+from typing import Optional
 
 router = APIRouter(tags=["Students"])
 
@@ -39,7 +40,7 @@ async def register_student_face(
     contents = await file.read((1 << 22) + 1)
     if len(contents) > (1 << 22):
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, 
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="Image too large. Maximum size is 4MB."
         )
     
@@ -78,3 +79,41 @@ async def register_student_face(
         dept=dept
     )
     return StudentRegisterRequest(student_data=student_data)
+
+
+@router.get("", response_model=StudentListResponse)
+async def get_students(
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=500, description="Maximum number of records to return"),
+    search: Optional[str] = Query(None, description="Search by matric_no or full_name"),
+    db: Session = Depends(get_db),
+):
+    """
+    Get a list of all registered students.
+    
+    Supports pagination via skip/limit and optional search filtering.
+    """
+    query = db.query(StudentModel)
+    
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            (StudentModel.matric_no.ilike(search_filter)) |
+            (StudentModel.full_name.ilike(search_filter))
+        )
+    
+    total = query.count()
+    students = query.offset(skip).limit(limit).all()
+    
+    student_responses = [
+        StudentResponse(
+            id=s.id,
+            matric_no=s.matric_no,
+            full_name=s.full_name,
+            registered_at=s.registered_at,
+            has_face=s.face is not None
+        )
+        for s in students
+    ]
+    
+    return StudentListResponse(students=student_responses, total=total)

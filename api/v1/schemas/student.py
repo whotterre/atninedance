@@ -22,14 +22,17 @@ class FaceEmbeddingResponse(BaseModel):
     
 class StudentResponse(BaseModel):
     id: int
-    matric_number: str
+    matric_no: str
     full_name: str
-    email: Optional[str]
-    dept: Optional[str]
-    face_embeddings: List[FaceEmbeddingResponse] = []
-    created_at: datetime
+    registered_at: datetime
+    has_face: bool = False
     
     class Config: 
         from_attributes = True
+
+
+class StudentListResponse(BaseModel):
+    students: List[StudentResponse]
+    total: int
 
 

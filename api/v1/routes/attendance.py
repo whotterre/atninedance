@@ -11,6 +11,54 @@ from api.v1.services.face_service import get_face_service
 
 router = APIRouter(tags=["Attendance"])
 
+
+@router.get("/sessions", status_code=200)
+async def list_sessions(
+    db: Session = Depends(get_db)
+):
+    """Get all attendance sessions."""
+    sessions = db.query(AttendanceSession).order_by(AttendanceSession.start_time.desc()).all()
+    return [
+        {
+            "session_id": s.id,
+            "title": s.title,
+            "start_time": s.start_time,
+            "scheduled_duration": s.scheduled_duration,
+            "status": s.status,
+            "course_code": s.course_code,
+            "present_count": s.present_count or 0
+        }
+        for s in sessions
+    ]
+
+
+@router.get("/sessions/{session_id}", status_code=200)
+async def get_session(
+    session_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get details of a specific attendance session by ID."""
+    session = db.query(AttendanceSession).filter(AttendanceSession.id == session_id).first()
+    
+    if not session:
+        raise HTTPException(404, "Session not found")
+    
+    return {
+        "session_id": session.id,
+        "title": session.title,
+        "description": session.description,
+        "start_time": session.start_time,
+        "end_time": session.end_time,
+        "scheduled_duration": session.scheduled_duration,
+        "actual_duration": session.actual_duration,
+        "status": session.status,
+        "course_code": session.course_code,
+        "total_students": session.total_students or 0,
+        "present_count": session.present_count or 0,
+        "late_count": session.late_count or 0
+    }
+
+
 @router.post("/sessions", status_code=201)
 async def create_session(
     session_data: SessionCreate,
@@ -46,6 +94,40 @@ async def create_session(
         "status": session.status
     }
     
+@router.post("/sessions/{session_id}/end", status_code=200)
+async def end_session(
+    session_id: int,
+    db: Session = Depends(get_db)
+):
+    """End an active attendance session."""
+    session = db.query(AttendanceSession).filter(AttendanceSession.id == session_id).first()
+    
+    if not session:
+        raise HTTPException(404, "Session not found")
+    
+    if session.status == "completed":
+        raise HTTPException(400, "Session is already ended")
+    
+    if session.status == "cancelled":
+        raise HTTPException(400, "Session was cancelled")
+    
+    session.status = "completed"
+    session.end_time = datetime.now(timezone.utc)
+    
+    if session.start_time:
+        elapsed = session.end_time - session.start_time
+        session.actual_duration = int(elapsed.total_seconds() // 60)
+    
+    db.commit()
+    
+    return {
+        "session_id": session.id,
+        "status": session.status,
+        "end_time": session.end_time,
+        "actual_duration": session.actual_duration
+    }
+
+
 @router.post("/sessions/{session_id}/recognize", status_code=200)
 async def recognize_and_record(
     session_id: int,
