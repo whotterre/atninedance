@@ -17,7 +17,6 @@ import numpy as np
 from typing import Optional, List
 from sqlalchemy.orm import Session
 
-from api.v1.models.student import Student
 
 
 class FaceService:
@@ -101,8 +100,8 @@ class FaceService:
             result = DeepFace.represent(
                 img_path=rgb_image,
                 model_name="Facenet512",  # 512-dim output
-                enforce_detection=True,  # raise if no face
-                detector_backend="opencv",  # fast detection
+                enforce_detection=True, 
+                detector_backend="retinaface", 
             )
             embedding = result[0]["embedding"]
             return embedding

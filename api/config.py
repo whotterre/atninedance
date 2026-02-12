@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS
-    ALLOWED_ORIGINS: str = '["http://localhost:3000"]'
+    ALLOWED_ORIGINS: str = "http://localhost:8080,http://localhost:3000"  # Comma-separated list of origins or "*" for all (no credentials)
 
 
 @lru_cache

@@ -22,10 +22,11 @@ from api.v1.models.base_model import Base
 # Use the DeclarativeBase metadata from your models so alembic autogenerate works
 target_metadata = Base.metadata
 
-# Allow overriding the DB URL via the DATABASE_URL environment variable.
-# If set, this will replace the sqlalchemy.url value from alembic.ini.
-if os.environ.get("DATABASE_URL"):
-    config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+# Load database URL from settings or environment variable
+from api.config import get_settings
+settings = get_settings()
+database_url = os.environ.get("DATABASE_URL") or settings.DATABASE_URL
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Import model modules so that declarative models are registered on Base.metadata.
 # Without importing the modules, `autogenerate` will see an empty metadata.
